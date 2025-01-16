@@ -16,6 +16,7 @@
 
 package org.gradle.api.internal.project;
 
+import org.gradle.api.Project;
 import org.gradle.api.internal.GradleInternal;
 import org.gradle.api.internal.tasks.TaskDependencyUsageTracker;
 import org.gradle.execution.taskgraph.TaskExecutionGraphInternal;
@@ -24,6 +25,7 @@ import org.gradle.internal.service.scopes.Scope;
 import org.gradle.internal.service.scopes.ServiceScope;
 
 import javax.annotation.Nullable;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -48,6 +50,11 @@ public interface CrossProjectModelAccess {
     /**
      * @param referrer The project from which the return value will be used.
      */
+    Map<String, Project> getChildProjects(ProjectInternal referrer, ProjectInternal relativeTo);
+
+    /**
+     * @param referrer The project from which the return value will be used.
+     */
     Set<? extends ProjectInternal> getSubprojects(ProjectInternal referrer, ProjectInternal relativeTo);
 
     /**
@@ -68,6 +75,7 @@ public interface CrossProjectModelAccess {
     /**
      * Provides an implementation of a tracker that handles the usages of TaskDependency API in the context
      * of the current project. The tracker checks that the usages for possible violation of cross-project model access restriction.
+     *
      * @param referrerProject The project providing the context.
      */
     @Nullable

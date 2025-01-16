@@ -20,41 +20,12 @@ import org.gradle.api.Incubating;
 
 /**
  * Provides options to configure problems.
- * <p>
  *
  * @see ProblemReporter
  * @since 8.6
  */
 @Incubating
 public interface ProblemSpec {
-
-    /**
-     * Defines simple identification for this problem.
-     * <p>
-     * It is a mandatory property to configure when emitting a problem with {@link ProblemReporter}..
-     * <p>
-     * Calling this method will set the reported problem group to {@link SharedProblemGroup#generic()}
-     *
-     * @param name the name of the problem. As a convention kebab-case-formatting should be used.
-     * @param displayName a human-readable representation of the problem, free of any contextual information.
-     * @return this
-     * @since 8.8
-     */
-    ProblemSpec id(String name, String displayName);
-
-    /**
-     * Defines simple identification for this problem.
-     * <p>
-     * It is a mandatory property to configure when emitting a problem with {@link ProblemReporter}.
-     *
-     * @param name the name of the problem. As a convention kebab-case-formatting should be used.
-     * @param displayName a human-readable representation of the problem, free of any contextual information.
-     * @param parent the container problem group.
-     * @return this
-     * @since 8.8
-     */
-    ProblemSpec id(String name, String displayName, ProblemGroup parent);
-
     /**
      * Declares a short, but context-dependent message for this problem.
      *
@@ -93,7 +64,6 @@ public interface ProblemSpec {
 
     /**
      * Declares that this problem is in a file with on a line at a certain position.
-     * <p>
      *
      * @param path the file location
      * @param line the one-indexed line number
@@ -127,15 +97,6 @@ public interface ProblemSpec {
     ProblemSpec offsetInFileLocation(String path, int offset, int length);
 
     /**
-     * Declares that this problem is emitted while applying a plugin.
-     *
-     * @param pluginId the ID of the applied plugin
-     * @return this
-     * @since 8.6
-     */
-    ProblemSpec pluginLocation(String pluginId);
-
-    /**
      * Declares that this problem should automatically collect the location information based on the current stack trace.
      *
      * @return this
@@ -164,11 +125,11 @@ public interface ProblemSpec {
     /**
      * The exception causing this problem.
      *
-     * @param e the exception.
+     * @param t the exception.
      * @return this
-     * @since 8.6
+     * @since 8.11
      */
-    ProblemSpec withException(RuntimeException e);
+    ProblemSpec withException(Throwable t);
 
     /**
      * Declares the severity of the problem.

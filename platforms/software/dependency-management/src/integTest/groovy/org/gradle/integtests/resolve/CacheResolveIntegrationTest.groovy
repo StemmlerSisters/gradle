@@ -37,7 +37,7 @@ class CacheResolveIntegrationTest extends AbstractHttpDependencyResolutionTest i
         and:
         buildFile << """
 repositories {
-    ivy { url "${ivyHttpRepo.uri}" }
+    ivy { url = "${ivyHttpRepo.uri}" }
 }
 configurations { compile }
 dependencies { compile 'group:projectA:1.2' }
@@ -93,12 +93,12 @@ subprojects {
 }
 project('a') {
     repositories {
-        ivy { url "${repo1.uri}" }
+        ivy { url = "${repo1.uri}" }
     }
 }
 project('b') {
     repositories {
-        ivy { url "${repo2.uri}" }
+        ivy { url = "${repo2.uri}" }
     }
     retrieve.dependsOn(':a:retrieve')
 }
@@ -130,7 +130,7 @@ project('b') {
         and:
         buildFile << """
 repositories {
-    ivy { url "${ivyHttpRepo.uri}" }
+    ivy { url = "${ivyHttpRepo.uri}" }
 }
 configurations { compile }
 dependencies { compile 'group:projectA:1.2' }
@@ -263,7 +263,7 @@ dependencies { implementation 'org.test:test:1.0' }
     }
 
     private String getCachePath() {
-        "caches/${CacheLayout.ROOT.key}/${CacheLayout.FILE_STORE.key}/"
+        "caches/${CacheLayout.MODULES.key}/${CacheLayout.FILE_STORE.key}/"
     }
 
     private void buildWithJavaLibraryAndMavenRepoArtifactOnly() {
@@ -274,7 +274,7 @@ plugins {
 
 repositories {
     maven {
-        url "${mavenHttpRepo.uri}"
+        url = "${mavenHttpRepo.uri}"
         metadataSources {
             artifact()
         }
@@ -291,7 +291,7 @@ plugins {
 
 repositories {
     maven {
-        url "${mavenHttpRepo.uri}"
+        url = "${mavenHttpRepo.uri}"
     }
 }
 """
@@ -309,7 +309,7 @@ public class Base {}
         def otherHome = executer.gradleUserHomeDir.parentFile.createDir('other-home')
         def otherCacheDir = otherHome.toPath().resolve(DefaultCacheScopeMapping.GLOBAL_CACHE_DIR_NAME)
         Files.createDirectory(otherCacheDir)
-        Files.move(getMetadataCacheDir().toPath(), otherCacheDir.resolve(CacheLayout.ROOT.key))
+        Files.move(getMetadataCacheDir().toPath(), otherCacheDir.resolve(CacheLayout.MODULES.key))
         executer.withGradleUserHomeDir(otherHome)
     }
 }

@@ -17,43 +17,51 @@
 package org.gradle.api.problems.internal;
 
 import org.gradle.api.problems.ProblemReporter;
+import org.gradle.internal.exception.ExceptionAnalyser;
+import org.gradle.internal.operations.CurrentBuildOperationRef;
 import org.gradle.internal.service.scopes.Scope;
 import org.gradle.internal.service.scopes.ServiceScope;
+import org.gradle.problems.buildtree.ProblemStream;
 
-import java.util.Collections;
-import java.util.List;
+import javax.annotation.Nonnull;
 
 @ServiceScope(Scope.BuildTree.class)
 public class DefaultProblems implements InternalProblems {
 
-    private final ProblemEmitter emitter;
-    private final List<ProblemTransformer> transformers;
+    private final ProblemStream problemStream;
+    private final CurrentBuildOperationRef currentBuildOperationRef;
+    private final ProblemSummarizer problemSummarizer;
     private final InternalProblemReporter internalReporter;
+    private final AdditionalDataBuilderFactory additionalDataBuilderFactory = new AdditionalDataBuilderFactory();
+    private final ExceptionProblemRegistry exceptionProblemRegistry;
+    private final ExceptionAnalyser exceptionAnalyser;
 
-    public DefaultProblems(ProblemEmitter emitter) {
-        this(emitter, Collections.<ProblemTransformer>emptyList());
-    }
-
-    public DefaultProblems(ProblemEmitter emitter, List<ProblemTransformer> transformers) {
-        this.emitter = emitter;
-        this.transformers = transformers;
-        internalReporter = createReporter(emitter, transformers);
+    public DefaultProblems(ProblemSummarizer problemSummarizer, ProblemStream problemStream, CurrentBuildOperationRef currentBuildOperationRef, ExceptionProblemRegistry exceptionProblemRegistry, ExceptionAnalyser exceptionAnalyser) {
+        this.problemSummarizer = problemSummarizer;
+        this.problemStream = problemStream;
+        this.currentBuildOperationRef = currentBuildOperationRef;
+        this.exceptionProblemRegistry = exceptionProblemRegistry;
+        this.exceptionAnalyser = exceptionAnalyser;
+        this.internalReporter = createReporter();
     }
 
     @Override
-    public ProblemReporter forNamespace(String namespace) {
-        if (DefaultProblemCategory.GRADLE_CORE_NAMESPACE.equals(namespace)) {
-            throw new IllegalStateException("Cannot use " + DefaultProblemCategory.GRADLE_CORE_NAMESPACE + " namespace.");
-        }
-        return createReporter(emitter, transformers);
+    public ProblemReporter getReporter() {
+        return createReporter();
     }
 
-    private static DefaultProblemReporter createReporter(ProblemEmitter emitter, List<ProblemTransformer> transformers) {
-        return new DefaultProblemReporter(emitter, transformers);
+    @Nonnull
+    private DefaultProblemReporter createReporter() {
+        return new DefaultProblemReporter(problemSummarizer, problemStream, currentBuildOperationRef, additionalDataBuilderFactory, exceptionProblemRegistry, exceptionAnalyser);
     }
 
     @Override
     public InternalProblemReporter getInternalReporter() {
         return internalReporter;
+    }
+
+    @Override
+    public AdditionalDataBuilderFactory getAdditionalDataBuilderFactory() {
+        return additionalDataBuilderFactory;
     }
 }

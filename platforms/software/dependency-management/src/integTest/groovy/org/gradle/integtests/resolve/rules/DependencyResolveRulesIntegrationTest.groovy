@@ -633,7 +633,7 @@ class DependencyResolveRulesIntegrationTest extends AbstractIntegrationSpec {
         failure.assertHasCause("Could not resolve all files for configuration ':conf'.")
         failure.assertHasCause("""Could not resolve org.utils:impl:1.3.
 Required by:
-    project :""")
+    root project :""")
         failure.assertHasCause("Unhappy :(")
     }
 
@@ -867,7 +867,7 @@ Required by:
 
         file("build.gradle") << """
             repositories {
-                maven { url "${mavenRepo.uri}" }
+                maven { url = "${mavenRepo.uri}" }
             }
             configurations {
                 conf {
@@ -919,7 +919,7 @@ Required by:
     String getCommon() {
         """configurations { conf }
         repositories {
-            maven { url "${mavenRepo.uri}" }
+            maven { url = "${mavenRepo.uri}" }
         }
         task resolveConf {
             def files = configurations.conf

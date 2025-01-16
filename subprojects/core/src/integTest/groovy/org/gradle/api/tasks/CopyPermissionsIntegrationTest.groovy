@@ -18,11 +18,13 @@ package org.gradle.api.tasks
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
 import org.gradle.integtests.fixtures.executer.GradleContextualExecuter
+import org.gradle.integtests.fixtures.ToBeFixedForConfigurationCache
 import org.gradle.test.fixtures.file.TestFile
 import org.gradle.test.precondition.Requires
 import org.gradle.test.preconditions.UnitTestPreconditions
 import spock.lang.Issue
 
+import static org.gradle.integtests.fixtures.ToBeFixedForConfigurationCache.Skip.INVESTIGATE
 import static org.junit.Assert.assertTrue
 
 class CopyPermissionsIntegrationTest extends AbstractIntegrationSpec implements UnreadableCopyDestinationFixture {
@@ -203,6 +205,7 @@ class CopyPermissionsIntegrationTest extends AbstractIntegrationSpec implements 
     }
 
     @Requires(UnitTestPreconditions.FilePermissions)
+    @ToBeFixedForConfigurationCache(skip = INVESTIGATE)
     def "fileMode can be modified in copy action"() {
         given:
         file("reference.txt") << 'test file"'
@@ -409,7 +412,7 @@ class CopyPermissionsIntegrationTest extends AbstractIntegrationSpec implements 
     def "permissions block overrides mode"() {
         given:
         withSourceFiles("r--------")
-        buildScript '''
+        buildFile '''
             task (copy, type:Copy) {
                from 'files'
                into 'dest'
@@ -435,7 +438,7 @@ class CopyPermissionsIntegrationTest extends AbstractIntegrationSpec implements 
     def "permissions block sets sensible defaults"() {
         given:
         withSourceFiles("r--------")
-        buildScript '''
+        buildFile '''
             task (copy, type:Copy) {
                from 'files'
                into 'dest'
@@ -456,7 +459,7 @@ class CopyPermissionsIntegrationTest extends AbstractIntegrationSpec implements 
     def "permissions block can customize permissions (Groovy DSL)"() {
         given:
         withSourceFiles("r--------")
-        buildScript '''
+        buildFile '''
             task (copy, type:Copy) {
                from 'files'
                into 'dest'
@@ -518,7 +521,7 @@ class CopyPermissionsIntegrationTest extends AbstractIntegrationSpec implements 
     def "permissions can be created via factory (#description)"(String description, String setting) {
         given:
         withSourceFiles("r--------")
-        buildScript """
+        buildFile """
             def p = project.services.get(FileSystemOperations).directoryPermissions {
                 user {
                     write = false

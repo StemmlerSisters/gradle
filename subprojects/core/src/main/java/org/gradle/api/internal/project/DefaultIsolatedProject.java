@@ -16,7 +16,7 @@
 
 package org.gradle.api.internal.project;
 
-import org.gradle.api.IsolatedProject;
+import org.gradle.api.project.IsolatedProject;
 import org.gradle.api.file.Directory;
 
 public final class DefaultIsolatedProject implements IsolatedProject {
@@ -40,6 +40,11 @@ public final class DefaultIsolatedProject implements IsolatedProject {
     }
 
     @Override
+    public String getBuildTreePath() {
+        return project.getBuildTreePath();
+    }
+
+    @Override
     public Directory getProjectDirectory() {
         return project.getLayout().getProjectDirectory();
     }
@@ -49,6 +54,20 @@ public final class DefaultIsolatedProject implements IsolatedProject {
         return project.equals(rootProject)
             ? this
             : rootProject.getIsolated();
+    }
+
+    @Override
+    public int hashCode() {
+        return project.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof DefaultIsolatedProject)) {
+            return false;
+        }
+        DefaultIsolatedProject that = (DefaultIsolatedProject) obj;
+        return this.project.equals(that.project);
     }
 
     @Override

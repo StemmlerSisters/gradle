@@ -19,25 +19,22 @@ package org.gradle.tooling.internal.provider;
 import org.gradle.api.internal.file.FileCollectionFactory;
 import org.gradle.api.internal.tasks.userinput.UserInputReader;
 import org.gradle.initialization.layout.BuildLayoutFactory;
-import org.gradle.internal.agents.AgentStatus;
-import org.gradle.internal.concurrent.ExecutorFactory;
+import org.gradle.internal.daemon.client.serialization.ClasspathInferer;
+import org.gradle.internal.daemon.client.serialization.ClientSidePayloadClassLoaderFactory;
+import org.gradle.internal.daemon.client.serialization.ClientSidePayloadClassLoaderRegistry;
 import org.gradle.internal.event.ListenerManager;
-import org.gradle.internal.jvm.inspection.JvmVersionDetector;
 import org.gradle.internal.logging.console.GlobalUserInputReceiver;
+import org.gradle.internal.service.Provides;
 import org.gradle.internal.service.ServiceRegistration;
+import org.gradle.internal.service.ServiceRegistrationProvider;
 import org.gradle.internal.service.ServiceRegistry;
-import org.gradle.internal.service.scopes.GlobalScopeServices;
-import org.gradle.launcher.cli.converter.BuildLayoutConverter;
 import org.gradle.launcher.daemon.client.DaemonClientFactory;
 import org.gradle.launcher.daemon.client.DaemonClientGlobalServices;
-import org.gradle.launcher.daemon.client.DaemonStopClient;
-import org.gradle.launcher.daemon.configuration.DaemonParameters;
-import org.gradle.launcher.exec.BuildExecuter;
+import org.gradle.launcher.daemon.client.DaemonStopClientExecuter;
+import org.gradle.launcher.daemon.client.NotifyDaemonClientExecuter;
+import org.gradle.launcher.exec.BuildExecutor;
 import org.gradle.tooling.internal.adapter.ProtocolToModelAdapter;
 import org.gradle.tooling.internal.provider.serialization.ClassLoaderCache;
-import org.gradle.tooling.internal.provider.serialization.ClasspathInferer;
-import org.gradle.tooling.internal.provider.serialization.ClientSidePayloadClassLoaderFactory;
-import org.gradle.tooling.internal.provider.serialization.ClientSidePayloadClassLoaderRegistry;
 import org.gradle.tooling.internal.provider.serialization.DefaultPayloadClassLoaderRegistry;
 import org.gradle.tooling.internal.provider.serialization.ModelClassLoaderFactory;
 import org.gradle.tooling.internal.provider.serialization.PayloadSerializer;
@@ -46,31 +43,39 @@ import org.gradle.tooling.internal.provider.serialization.WellKnownClassLoaderRe
 /**
  * Shared services for a tooling API provider connection.
  */
-public class ConnectionScopeServices {
+public class ConnectionScopeServices implements ServiceRegistrationProvider {
     void configure(ServiceRegistration serviceRegistration) {
-        serviceRegistration.addProvider(new GlobalScopeServices(true, AgentStatus.disabled()));
         serviceRegistration.addProvider(new DaemonClientGlobalServices());
     }
 
-    ShutdownCoordinator createShutdownCoordinator(ListenerManager listenerManager, DaemonClientFactory daemonClientFactory, ServiceRegistry services, FileCollectionFactory fileCollectionFactory) {
-        ServiceRegistry clientServices = daemonClientFactory.createMessageDaemonServices(services, new DaemonParameters(new BuildLayoutConverter().defaultValues(), fileCollectionFactory));
-        DaemonStopClient client = clientServices.get(DaemonStopClient.class);
-        ShutdownCoordinator shutdownCoordinator = new ShutdownCoordinator(client);
+    @Provides
+    ShutdownCoordinator createShutdownCoordinator(ListenerManager listenerManager, DaemonStopClientExecuter daemonStopClient) {
+        ShutdownCoordinator shutdownCoordinator = new ShutdownCoordinator(daemonStopClient);
         listenerManager.addListener(shutdownCoordinator);
         return shutdownCoordinator;
     }
 
-    ProviderConnection createProviderConnection(BuildExecuter buildActionExecuter,
-                                                DaemonClientFactory daemonClientFactory,
-                                                BuildLayoutFactory buildLayoutFactory,
-                                                ServiceRegistry serviceRegistry,
-                                                JvmVersionDetector jvmVersionDetector,
-                                                FileCollectionFactory fileCollectionFactory,
-                                                GlobalUserInputReceiver userInput,
-                                                UserInputReader userInputReader,
-                                                ExecutorFactory executorFactory,
-                                                // This is here to trigger creation of the ShutdownCoordinator. Could do this in a nicer way
-                                                ShutdownCoordinator shutdownCoordinator) {
+    @Provides
+    DaemonStopClientExecuter createDaemonStopClientFactory(DaemonClientFactory daemonClientFactory, FileCollectionFactory fileCollectionFactory) {
+        return new DaemonStopClientExecuter(daemonClientFactory);
+    }
+
+    @Provides
+    NotifyDaemonClientExecuter createNotifyDaemonClientExecuter(DaemonClientFactory daemonClientFactory, FileCollectionFactory fileCollectionFactory) {
+        return new NotifyDaemonClientExecuter(daemonClientFactory);
+    }
+
+    @Provides
+    ProviderConnection createProviderConnection(
+        BuildExecutor buildActionExecuter,
+        DaemonClientFactory daemonClientFactory,
+        BuildLayoutFactory buildLayoutFactory,
+        ServiceRegistry serviceRegistry,
+        FileCollectionFactory fileCollectionFactory,
+        GlobalUserInputReceiver userInput,
+        UserInputReader userInputReader,
+        ShutdownCoordinator shutdownCoordinator,
+        NotifyDaemonClientExecuter notifyDaemonClientExecuter) {
         ClassLoaderCache classLoaderCache = new ClassLoaderCache();
         return new ProviderConnection(
                 serviceRegistry,
@@ -86,14 +91,15 @@ public class ConnectionScopeServices {
                                         new ModelClassLoaderFactory())),
                                 new ClasspathInferer(),
                                 classLoaderCache))),
-            jvmVersionDetector,
             fileCollectionFactory,
             userInput,
             userInputReader,
-            executorFactory
+            shutdownCoordinator,
+            notifyDaemonClientExecuter
         );
     }
 
+    @Provides
     ProtocolToModelAdapter createProtocolToModelAdapter() {
         return new ProtocolToModelAdapter();
     }

@@ -16,7 +16,10 @@
 
 package org.gradle.api.problems.internal;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.gradle.api.NonNullApi;
+import org.gradle.api.problems.DocLink;
+import org.gradle.api.problems.ProblemDefinition;
 import org.gradle.api.problems.ProblemId;
 import org.gradle.api.problems.Severity;
 
@@ -31,6 +34,7 @@ public class DefaultProblemDefinition implements Serializable, ProblemDefinition
     private final Severity severity;
     private final DocLink documentationLink;
 
+    @VisibleForTesting
     DefaultProblemDefinition(
         ProblemId id,
         Severity severity,

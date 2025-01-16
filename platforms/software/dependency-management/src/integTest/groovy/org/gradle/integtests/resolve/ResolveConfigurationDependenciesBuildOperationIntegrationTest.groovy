@@ -42,7 +42,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
             allprojects {
                 apply plugin: "java"
                 repositories {
-                    maven { url '${mavenHttpRepo.uri}' }
+                    maven { url = '${mavenHttpRepo.uri}' }
                 }
             }
             dependencies {
@@ -86,7 +86,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
         setup:
         buildFile << """
         repositories {
-            maven { url '${mavenHttpRepo.uri}' }
+            maven { url = '${mavenHttpRepo.uri}' }
         }
 
         task resolve(type: Copy) {
@@ -126,7 +126,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
             allprojects {
                 apply plugin: "java"
                 repositories {
-                    maven { url '${mavenHttpRepo.uri}' }
+                    maven { url = '${mavenHttpRepo.uri}' }
                 }
             }
             dependencies {
@@ -177,7 +177,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
         buildFile << """
             buildscript {
                 repositories {
-                    maven { url '${mavenHttpRepo.uri}' }
+                    maven { url = '${mavenHttpRepo.uri}' }
                 }
                 dependencies {
                     classpath 'org.foo:root-dep:1.0'
@@ -247,7 +247,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
         file(scriptFileName) << """
             $scriptBlock {
                 repositories {
-                    maven { url '${mavenHttpRepo.uri}' }
+                    maven { url = '${mavenHttpRepo.uri}' }
                 }
                 dependencies {
                     classpath 'org.foo:root-dep:1.0'
@@ -293,7 +293,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
         file("projectB/build.gradle") << """
                 buildscript {
                     repositories {
-                        maven { url '${mavenHttpRepo.uri}' }
+                        maven { url = '${mavenHttpRepo.uri}' }
                     }
                     dependencies {
                         classpath "org.foo:some-dep:1.0"
@@ -301,8 +301,8 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
                 }
                 allprojects {
                     apply plugin: 'java'
-                    group "org.sample"
-                    version "1.0"
+                    group = "org.sample"
+                    version = "1.0"
                 }
 
         """
@@ -341,7 +341,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
 
             apply plugin: "java"
             repositories {
-                maven { url '${mavenHttpRepo.uri}' }
+                maven { url = '${mavenHttpRepo.uri}' }
             }
 
             dependencies {
@@ -405,7 +405,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
         failedResolve.assertFailurePresent(failure)
         def op = operations.first(ResolveConfigurationDependenciesBuildOperationType)
         op.details.configurationName == "compile"
-        op.failure == "org.gradle.api.internal.artifacts.ivyservice.DefaultLenientConfiguration\$ArtifactResolveException: Could not resolve all dependencies for configuration ':compile'."
+        op.failure == "org.gradle.api.internal.artifacts.ivyservice.TypedResolveException: Could not resolve all dependencies for configuration ':compile'."
         failure.assertHasCause("""Conflict found for the following module:
   - org:leaf between versions 2.0 and 1.0""")
         op.result != null
@@ -471,12 +471,12 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
             apply plugin: "java"
             repositories {
                 maven {
-                    name 'maven1'
-                    url '${mavenHttpRepo.uri}'
+                    name = 'maven1'
+                    url = "${mavenHttpRepo.uri}"
                 }
                 maven {
-                    name 'maven2'
-                    url '${secondMavenHttpRepo.uri}'
+                    name = 'maven2'
+                    url = "${secondMavenHttpRepo.uri}"
                 }
             }
             dependencies {
@@ -510,7 +510,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
             assert op.result.resolvedDependenciesCount == 3
             def resolvedComponents = op.result.components
             assert resolvedComponents.size() == 8
-            assert resolvedComponents.'project :'.repoId == null
+            assert resolvedComponents.'root project :'.repoId == null
             assert resolvedComponents.'org.foo:direct1:1.0'.repoId == maven1Id
             assert resolvedComponents.'org.foo:direct2:1.0'.repoId == maven2Id
             assert resolvedComponents.'org.foo:transitive1:1.0'.repoId == maven1Id
@@ -546,8 +546,8 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
             apply plugin: "java"
             repositories {
                 maven {
-                    name 'maven1'
-                    url '${mavenHttpRepo.uri}'
+                    name = 'maven1'
+                    url = "${mavenHttpRepo.uri}"
                 }
             }
             dependencies {
@@ -580,7 +580,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
         def repoId = repoId('maven1', op.details)
         def resolvedComponents = op.result.components
         resolvedComponents.size() == 4
-        resolvedComponents.'project :'.repoId == null
+        resolvedComponents.'root project :'.repoId == null
         resolvedComponents.'project :child'.repoId == null
         resolvedComponents.'org.foo:direct1:1.0'.repoId == repoId
         resolvedComponents.'org.foo:transitive1:1.0'.repoId == repoId
@@ -593,12 +593,12 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
             apply plugin: "java"
             repositories {
                 maven {
-                    name 'withoutCreds'
-                    url '${mavenHttpRepo.uri}'
+                    name = 'withoutCreds'
+                    url = "${mavenHttpRepo.uri}"
                 }
                 maven {
-                    name 'withCreds'
-                    url '${mavenHttpRepo.uri}'
+                    name = 'withCreds'
+                    url = "${mavenHttpRepo.uri}"
                     credentials {
                         username = 'foo'
                         password = 'bar'
@@ -658,8 +658,8 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
             apply plugin: "java"
             repositories {
                 maven {
-                    name 'one'
-                    url '${mavenRepo.uri}'
+                    name = 'one'
+                    url = "${mavenRepo.uri}"
                 }
             }
             configurations {
@@ -668,8 +668,8 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
                         project.repositories.clear()
                         project.repositories {
                             maven {
-                                name 'two'
-                                url '${mavenRepo.uri}'
+                                name = 'two'
+                                url = "${mavenRepo.uri}"
                             }
                             mavenCentral()
                         }
@@ -733,7 +733,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
                 id 'java-library'
             }
             ${mavenCentralRepository()}
-            repositories { maven { url '${mavenHttpRepo.uri}' } }
+            repositories { maven { url = '${mavenHttpRepo.uri}' } }
             testing.suites.test {
                 useJUnit()
                 dependencies {
@@ -746,7 +746,7 @@ class ResolveConfigurationDependenciesBuildOperationIntegrationTest extends Abst
                 id 'java-library'
                 id 'java-test-fixtures'
             }
-            repositories { maven { url '${mavenHttpRepo.uri}' } }
+            repositories { maven { url = '${mavenHttpRepo.uri}' } }
             dependencies {
                 testFixturesApi('org.foo:stuff:1.0')
             }

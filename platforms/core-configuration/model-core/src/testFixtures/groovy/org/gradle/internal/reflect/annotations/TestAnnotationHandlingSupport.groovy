@@ -23,6 +23,7 @@ import org.gradle.internal.properties.PropertyValue
 import org.gradle.internal.properties.PropertyVisitor
 import org.gradle.internal.properties.annotations.AbstractPropertyAnnotationHandler
 import org.gradle.internal.properties.annotations.DefaultTypeMetadataStore
+import org.gradle.internal.properties.annotations.MissingPropertyAnnotationHandler
 import org.gradle.internal.properties.annotations.PropertyMetadata
 import org.gradle.internal.properties.annotations.TypeAnnotationHandler
 import org.gradle.internal.properties.annotations.TypeMetadataStore
@@ -53,11 +54,13 @@ trait TestAnnotationHandlingSupport {
     TypeAnnotationMetadataStore typeAnnotationMetadataStore = new DefaultTypeAnnotationMetadataStore(
         [ThisIsAThing],
         [(TestNested): TYPE, (Long): TYPE, (Short): TYPE, (Tint): Modifiers.COLOR],
+        [:],
         ["java", "groovy"],
         [Object],
         [Object, GroovyObject],
         [],
         [Ignored, AlsoIgnored],
+        [],
         { Method method -> method.isAnnotationPresent(Generated) },
         TestCrossBuildInMemoryCacheFactory.instance()
     )
@@ -70,9 +73,12 @@ trait TestAnnotationHandlingSupport {
             new SimplePropertyAnnotationHandler(Short, INPUT, [Tint]),
         ],
         [ItDepends, Tint],
+        [],
+        [],
         typeAnnotationMetadataStore,
         { annotations -> annotations.get(TYPE)?.annotationType() },
-        TestCrossBuildInMemoryCacheFactory.instance()
+        TestCrossBuildInMemoryCacheFactory.instance(),
+        MissingPropertyAnnotationHandler.DO_NOTHING
     )
 
     private static class ThisIsAThingTypeAnnotationHandler implements TypeAnnotationHandler {

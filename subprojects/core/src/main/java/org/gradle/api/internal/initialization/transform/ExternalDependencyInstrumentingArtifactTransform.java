@@ -19,6 +19,7 @@ package org.gradle.api.internal.initialization.transform;
 import org.gradle.api.artifacts.transform.TransformOutputs;
 import org.gradle.api.internal.initialization.transform.utils.InstrumentationAnalysisSerializer;
 import org.gradle.api.internal.initialization.transform.utils.InstrumentationTransformUtils.InstrumentationInputType;
+import org.gradle.internal.classpath.transforms.InstrumentingClassTransform;
 import org.gradle.internal.classpath.types.InstrumentationTypeRegistry;
 import org.gradle.internal.classpath.types.PropertiesBackedInstrumentationTypeRegistry;
 import org.gradle.internal.instrumentation.api.types.BytecodeInterceptorFilter;
@@ -32,7 +33,7 @@ import static org.gradle.api.internal.initialization.transform.utils.Instrumenta
  * Artifact transform that instruments external artifacts with Gradle instrumentation.
  */
 @DisableCachingByDefault(because = "Instrumented jars are too big to cache")
-public abstract class ExternalDependencyInstrumentingArtifactTransform extends BaseInstrumentingArtifactTransform {
+public abstract class ExternalDependencyInstrumentingArtifactTransform extends BaseInstrumentingArtifactTransform<BaseInstrumentingArtifactTransform.Parameters> {
 
     @Override
     public void transform(TransformOutputs outputs) {
@@ -42,7 +43,7 @@ public abstract class ExternalDependencyInstrumentingArtifactTransform extends B
         File input = getInput().get().getAsFile();
         InstrumentationInputType inputType = getInputType(input);
         switch (inputType) {
-            case ANALYSIS_DATA:
+            case DEPENDENCY_ANALYSIS_DATA:
                 doOutputTransformedFile(input, outputs);
                 return;
             case ORIGINAL_ARTIFACT:
@@ -53,6 +54,8 @@ public abstract class ExternalDependencyInstrumentingArtifactTransform extends B
             case INSTRUMENTATION_MARKER:
                 // We don't need to do anything with the marker file
                 return;
+            case TYPE_HIERARCHY_ANALYSIS_DATA:
+                // Type hierarchy analysis should never be an input to this transform
             default:
                 throw new IllegalStateException("Unexpected input type: " + inputType);
         }
@@ -66,25 +69,25 @@ public abstract class ExternalDependencyInstrumentingArtifactTransform extends B
     }
 
     private InstrumentationArtifactMetadata readArtifactMetadata(File input) {
-        InstrumentationAnalysisSerializer serializer = new InstrumentationAnalysisSerializer(internalServices.get().getStringInterner());
-        return serializer.readOnlyMetadata(input);
+        InstrumentationAnalysisSerializer serializer = getParameters().getBuildService().get().getCachedInstrumentationAnalysisSerializer();
+        return serializer.readMetadataOnly(input);
     }
 
     @Override
-    protected InterceptorTypeRegistryAndFilter provideInterceptorTypeRegistryAndFilter() {
-        return new InterceptorTypeRegistryAndFilter() {
+    protected InstrumentingClassTransformProvider instrumentingClassTransformProvider(TransformOutputs outputs) {
+        return new InstrumentingClassTransformProvider() {
             @Override
-            public InstrumentationTypeRegistry getRegistry() {
-                return PropertiesBackedInstrumentationTypeRegistry.of(() -> {
+            public InstrumentingClassTransform getClassTransform() {
+                InstrumentationTypeRegistry typeRegistry = PropertiesBackedInstrumentationTypeRegistry.of(() -> {
                     File analysisFile = getInput().get().getAsFile();
-                    InstrumentationAnalysisSerializer serializer = new InstrumentationAnalysisSerializer(internalServices.get().getStringInterner());
-                    return serializer.readOnlyTypeHierarchy(analysisFile);
+                    InstrumentationAnalysisSerializer serializer = getParameters().getBuildService().get().getCachedInstrumentationAnalysisSerializer();
+                    return serializer.readDependencyAnalysis(analysisFile).getDependencies();
                 });
+                return new InstrumentingClassTransform(BytecodeInterceptorFilter.INSTRUMENTATION_AND_BYTECODE_UPGRADE, typeRegistry);
             }
 
             @Override
-            public BytecodeInterceptorFilter getFilter() {
-                return BytecodeInterceptorFilter.ALL;
+            public void close() {
             }
         };
     }

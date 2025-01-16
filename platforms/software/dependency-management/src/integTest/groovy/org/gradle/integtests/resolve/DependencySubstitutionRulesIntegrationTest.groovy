@@ -848,12 +848,12 @@ class DependencySubstitutionRulesIntegrationTest extends AbstractIntegrationSpec
             $common
 
             project(":dep1") {
-                group "org.utils"
+                group = "org.utils"
                 version = '1.6'
             }
 
             project(":dep2") {
-                group "org.utils"
+                group = "org.utils"
                 version = '3.0'
 
                 jar.archiveVersion = '3.0'
@@ -1142,10 +1142,10 @@ class DependencySubstitutionRulesIntegrationTest extends AbstractIntegrationSpec
         fails "checkDeps"
 
         then:
-        failure.assertHasCause("Could not resolve all task dependencies for configuration ':conf'.")
+        failure.assertHasCause("Could not resolve all dependencies for configuration ':conf'.")
         failure.assertHasCause("""Could not resolve org.utils:impl:1.3.
 Required by:
-    project :""")
+    root project :""")
         failure.assertHasCause("Unhappy :(")
     }
 
@@ -1347,7 +1347,7 @@ Required by:
         fails "checkDeps"
 
         then:
-        failure.assertHasCause("Could not resolve all task dependencies for configuration ':conf'.")
+        failure.assertHasCause("Could not resolve all dependencies for configuration ':conf'.")
         failure.assertHasCause("Invalid format: 'foobar'")
     }
 
@@ -1397,7 +1397,7 @@ Required by:
             configurations.create("default").extendsFrom(configurations.conf)
 
             repositories {
-                maven { url "${mavenRepo.uri}" }
+                maven { url = "${mavenRepo.uri}" }
             }
 
             task jar(type: Jar) {
@@ -1544,7 +1544,7 @@ configurations.all {
         buildFile << """
 
             repositories {
-                maven { url "${mavenRepo.uri}" }
+                maven { url = "${mavenRepo.uri}" }
             }
 
             configurations {
@@ -1617,7 +1617,7 @@ configurations.all {
         buildFile << """
 
             repositories {
-                maven { url "${mavenRepo.uri}" }
+                maven { url = "${mavenRepo.uri}" }
             }
 
             configurations {

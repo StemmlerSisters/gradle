@@ -23,6 +23,7 @@ import groovy.lang.MetaClass;
 import groovy.lang.MetaClassRegistry;
 import org.gradle.api.Action;
 import org.gradle.api.Describable;
+import org.gradle.api.IsolatedAction;
 import org.gradle.api.NonNullApi;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
@@ -38,6 +39,7 @@ import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.services.ServiceReference;
 import org.gradle.cache.internal.CrossBuildInMemoryCache;
 import org.gradle.cache.internal.CrossBuildInMemoryCacheFactory;
+import org.gradle.internal.Cast;
 import org.gradle.internal.DisplayName;
 import org.gradle.internal.Factory;
 import org.gradle.internal.UncheckedException;
@@ -248,6 +250,16 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
             throw new ClassGenerationException(formatter.toString());
         }
         return new ClassInspectionVisitorImpl(type, decorate, suffix, factoryId);
+    }
+
+    @SuppressWarnings("unused")
+    public static void logGroovySpaceAssignmentDeprecation(String propertyName) {
+        DeprecationLogger
+            .deprecate("Space-assignment syntax in Groovy DSL")
+            .withAdvice("Use assignment ('" + propertyName + " = <value>') instead.")
+            .willBeRemovedInGradle10()
+            .withUpgradeGuideSection(8, "groovy_space_assignment_syntax")
+            .nagUser();
     }
 
     private static class AttachedProperty {
@@ -465,6 +477,7 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
         private static final Type META_CLASS_REGISTRY_TYPE = getType(MetaClassRegistry.class);
         private static final Type OBJECT_ARRAY_TYPE = getType(Object[].class);
         private static final Type ACTION_TYPE = getType(Action.class);
+        private static final Type ISOLATED_ACTION_TYPE = getType(IsolatedAction.class);
         private static final Type LAZY_GROOVY_SUPPORT_TYPE = getType(LazyGroovySupport.class);
         private static final Type MANAGED_TYPE = getType(Managed.class);
         private static final Type EXTENSION_CONTAINER_TYPE = getType(ExtensionContainer.class);
@@ -520,6 +533,8 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
         private static final Type RETURN_VOID_METHOD_TYPE = Type.getMethodType(RETURN_VOID);
         private static final Type RETURN_OBJECT_METHOD_TYPE = Type.getMethodType(RETURN_OBJECT);
         private static final Type RETURN_CONVENTION_METHOD_TYPE = Type.getMethodType(RETURN_CONVENTION);
+        private static final Type DEPRECATION_HOLDER_TYPE = Type.getType(AsmBackedClassGenerator.class);
+        private static final Type DEPRECATED_ANNOTATION_TYPE = getType(Deprecated.class);
 
         private static final String[] EMPTY_STRINGS = new String[0];
         private static final Type[] EMPTY_TYPES = new Type[0];
@@ -1615,6 +1630,13 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
 
             // GENERATE public void <propName>(<type> v) { <setter>(v) }
             addSetter(property.getName(), getMethodDescriptor(VOID_TYPE, paramType), methodVisitor -> new MethodVisitorScope(methodVisitor) {{
+                //DEPRECATION
+                visitAnnotation(DEPRECATED_ANNOTATION_TYPE.getDescriptor(), true).visitEnd();
+
+                // PRINT DEPRECATION WARNING
+                _LDC(property.getName());
+                _INVOKESTATIC(DEPRECATION_HOLDER_TYPE, "logGroovySpaceAssignmentDeprecation", RETURN_VOID_FROM_STRING);
+
                 // GENERATE <setter>(v)
                 _ALOAD(0);
                 _ILOAD_OF(paramType, 1);
@@ -1672,6 +1694,8 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
             Type returnType = getType(method.getReturnType());
 
             Type[] originalParameterTypes = collectArray(method.getParameterTypes(), Type.class, Type::getType);
+            Type lastParameterType = originalParameterTypes[originalParameterTypes.length - 1];
+
             int numParams = originalParameterTypes.length;
             Type[] closurisedParameterTypes = new Type[numParams];
             System.arraycopy(originalParameterTypes, 0, closurisedParameterTypes, 0, numParams);
@@ -1694,7 +1718,13 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
 
                 // GENERATE ConfigureUtil.configureUsing(v);
                 _ALOAD(stackVar);
-                _INVOKESTATIC(CONFIGURE_UTIL_TYPE, "configureUsing", getMethodDescriptor(ACTION_TYPE, CLOSURE_TYPE));
+
+                assert lastParameterType.equals(ACTION_TYPE) || lastParameterType.equals(ISOLATED_ACTION_TYPE);
+
+                String methodName = lastParameterType.equals(ISOLATED_ACTION_TYPE)
+                    ? "configureUsingIsolatedAction"
+                    : "configureUsing";
+                _INVOKESTATIC(CONFIGURE_UTIL_TYPE, methodName, getMethodDescriptor(lastParameterType, CLOSURE_TYPE));
                 _INVOKEVIRTUAL(generatedType, method.getName(), getMethodDescriptor(getType(method.getReturnType()), originalParameterTypes));
 
                 _IRETURN_OF(returnType);
@@ -1941,7 +1971,7 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
         if (argument instanceof Class) {
             return (Class<?>) argument;
         }
-        return (Class<?>) ((ParameterizedType) argument).getRawType();
+        return (Class<?>) Cast.cast(ParameterizedType.class, argument).getRawType();
     }
 
     private static class ObjectCreationDetails {

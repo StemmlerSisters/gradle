@@ -16,7 +16,7 @@
 
 package org.gradle.internal.declarativedsl.mappingToJvm
 
-import org.gradle.internal.declarativedsl.analysis.AnalysisSchema
+import org.gradle.declarative.dsl.schema.AnalysisSchema
 import org.gradle.internal.declarativedsl.analysis.ResolutionResult
 import org.gradle.internal.declarativedsl.analysis.SchemaTypeRefContext
 import org.gradle.internal.declarativedsl.demo.assignmentTrace
@@ -40,6 +40,6 @@ fun <T : Any> runtimeInstanceFromResult(
     return createInstance().also {
         DeclarativeReflectionToObjectConverter(
             emptyMap(), it, MemberFunctionResolver(configureLambdas), ReflectionRuntimePropertyResolver, customAccessors
-        ).apply(topLevel)
+        ) { object {}.javaClass.classLoader }.apply(topLevel)
     }
 }

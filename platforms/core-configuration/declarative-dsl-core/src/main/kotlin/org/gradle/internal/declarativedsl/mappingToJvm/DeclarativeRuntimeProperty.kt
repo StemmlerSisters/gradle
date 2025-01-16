@@ -16,8 +16,14 @@
 
 package org.gradle.internal.declarativedsl.mappingToJvm
 
+import org.gradle.internal.declarativedsl.InstanceAndPublicType
 
-interface DeclarativeRuntimeProperty {
-    fun getValue(receiver: Any): Any?
+
+fun interface DeclarativeRuntimePropertyGetter {
+    fun getValue(receiver: Any): InstanceAndPublicType
+}
+
+
+fun interface DeclarativeRuntimePropertySetter {
     fun setValue(receiver: Any, value: Any?)
 }

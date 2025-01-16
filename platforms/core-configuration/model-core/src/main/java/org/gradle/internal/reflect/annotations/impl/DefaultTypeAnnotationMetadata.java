@@ -20,21 +20,29 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
+import org.gradle.internal.Cast;
+import org.gradle.internal.reflect.annotations.FunctionAnnotationMetadata;
 import org.gradle.internal.reflect.validation.TypeValidationContext;
 import org.gradle.internal.reflect.validation.ReplayingTypeValidationContext;
 import org.gradle.internal.reflect.annotations.PropertyAnnotationMetadata;
 import org.gradle.internal.reflect.annotations.TypeAnnotationMetadata;
 
 import java.lang.annotation.Annotation;
+import java.util.Optional;
 
+/**
+ * Default implementation of {@link TypeAnnotationMetadata}.
+ */
 public class DefaultTypeAnnotationMetadata implements TypeAnnotationMetadata {
     private final ImmutableBiMap<Class<? extends Annotation>, Annotation> annotations;
     private final ImmutableSortedSet<PropertyAnnotationMetadata> properties;
+    private final ImmutableSortedSet<FunctionAnnotationMetadata> methods;
     private final ReplayingTypeValidationContext validationProblems;
 
-    public DefaultTypeAnnotationMetadata(Iterable<? extends Annotation> annotations, Iterable<? extends PropertyAnnotationMetadata> properties, ReplayingTypeValidationContext validationProblems) {
+    public DefaultTypeAnnotationMetadata(Iterable<? extends Annotation> annotations, Iterable<? extends PropertyAnnotationMetadata> properties, Iterable<? extends FunctionAnnotationMetadata> methods, ReplayingTypeValidationContext validationProblems) {
         this.annotations = ImmutableBiMap.copyOf(Maps.uniqueIndex(annotations, Annotation::annotationType));
         this.properties = ImmutableSortedSet.copyOf(properties);
+        this.methods = ImmutableSortedSet.copyOf(methods);
         this.validationProblems = validationProblems;
     }
 
@@ -54,7 +62,17 @@ public class DefaultTypeAnnotationMetadata implements TypeAnnotationMetadata {
     }
 
     @Override
+    public ImmutableSortedSet<FunctionAnnotationMetadata> getFunctionAnnotationMetadata() {
+        return methods;
+    }
+
+    @Override
     public void visitValidationFailures(TypeValidationContext validationContext) {
         validationProblems.replay(null, validationContext);
+    }
+
+    @Override
+    public <T extends Annotation> Optional<T> getAnnotation(Class<T> annotationType) {
+        return Optional.ofNullable(Cast.uncheckedCast(annotations.get(annotationType)));
     }
 }

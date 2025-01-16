@@ -134,7 +134,7 @@ class RepositoriesDeclaredInSettingsIntegrationTest extends AbstractModuleDepend
             }
 
             repositories {
-                maven { url 'dummy' }
+                maven { url = 'dummy' }
             }
         """
 
@@ -164,7 +164,7 @@ class RepositoriesDeclaredInSettingsIntegrationTest extends AbstractModuleDepend
             }
 
             repositories {
-                maven { url 'dummy' }
+                maven { url = 'dummy' }
             }
         """
 
@@ -206,7 +206,7 @@ class RepositoriesDeclaredInSettingsIntegrationTest extends AbstractModuleDepend
             }
 
             repositories {
-                maven { url 'dummy' }
+                maven { url = 'dummy' }
             }
         """
 
@@ -243,7 +243,7 @@ class RepositoriesDeclaredInSettingsIntegrationTest extends AbstractModuleDepend
                 }
 
                 repositories {
-                    maven { url 'dummy' }
+                    maven { url = 'dummy' }
                 }
                 println "Repository registered in \$it"
             }
@@ -451,7 +451,7 @@ class RepositoriesDeclaredInSettingsIntegrationTest extends AbstractModuleDepend
             dependencyResolutionManagement {
                 repositories {
                     maven {
-                        url "this should be ignored"
+                        url = "this-should-be-ignored"
                     }
                 }
             }
@@ -517,7 +517,7 @@ class RepositoriesDeclaredInSettingsIntegrationTest extends AbstractModuleDepend
             }
 
             repositories {
-                maven { url 'dummy' }
+                maven { url = 'dummy' }
             }
         """
         settingsFile << """
@@ -790,7 +790,7 @@ class RepositoriesDeclaredInSettingsIntegrationTest extends AbstractModuleDepend
         buildFile << """
             repositories {
                 maven {
-                    url "dummy"
+                    url = "dummy"
                 }
             }
 
@@ -806,7 +806,7 @@ class RepositoriesDeclaredInSettingsIntegrationTest extends AbstractModuleDepend
         then:
         failure.assertHasCause("""Could not resolve all dependencies for configuration ':conf'.""")
             .assertHasResolutions("""The project declares repositories, effectively ignoring the repositories you have declared in the settings.
-   You can figure out how project repositories are declared by configuring your build to fail on project repositories.
+   To determine how project repositories are declared, configure your build to fail on project repositories.
    ${documentationRegistry.getDocumentationRecommendationFor("information", "declaring_repositories", "sub:fail_build_on_project_repositories")}""",
                 repositoryHint("Maven POM"),
                 STACKTRACE_MESSAGE,
@@ -832,7 +832,7 @@ class RepositoriesDeclaredInSettingsIntegrationTest extends AbstractModuleDepend
 settingsEvaluated {
   it.dependencyResolutionManagement {
     repositories {
-      maven { url '/doesnt/matter'}
+      maven { url = 'doesnt matter' }
     }
   }
 }

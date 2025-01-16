@@ -18,7 +18,7 @@ package org.gradle.internal.execution.steps
 
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.ImmutableSortedMap
-import org.gradle.api.problems.internal.Problem
+import org.gradle.api.problems.Problem
 import org.gradle.internal.execution.UnitOfWork
 import org.gradle.internal.execution.history.BeforeExecutionState
 import org.gradle.internal.execution.history.PreviousExecutionState
@@ -127,7 +127,6 @@ class ResolveChangesStepTest extends StepSpec<ValidationFinishedContext> {
             return delegateResult
         }
         _ * changes.changeDescriptions >> ImmutableList.of("changed")
-        _ * changes.beforeExecutionState >> beforeExecutionState
         _ * context.nonIncrementalReason >> Optional.empty()
         _ * context.beforeExecutionState >> Optional.of(beforeExecutionState)
         _ * context.previousExecutionState >> Optional.of(previousExecutionState)

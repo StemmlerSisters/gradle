@@ -16,40 +16,45 @@
 
 package org.gradle.internal.operations;
 
-import org.gradle.concurrent.ParallelismConfiguration;
 import org.gradle.internal.concurrent.DefaultExecutorFactory;
-import org.gradle.internal.concurrent.DefaultParallelismConfiguration;
 import org.gradle.internal.concurrent.ExecutorFactory;
+import org.gradle.internal.time.Clock;
+import org.gradle.internal.time.Time;
+import org.gradle.internal.work.DefaultWorkerLimits;
 import org.gradle.internal.work.WorkerLeaseService;
+import org.gradle.internal.work.WorkerLimits;
 import org.gradle.test.fixtures.work.TestWorkerLeaseService;
 
 public class BuildOperationExecutorSupport {
+
     public static Builder builder(int numThreads) {
-        return builder(false, numThreads);
+        return builder(new DefaultWorkerLimits(numThreads));
     }
 
-    public static Builder builder(boolean parallelProjectExecution, int numThreads) {
-        return builder(new DefaultParallelismConfiguration(parallelProjectExecution, numThreads));
-    }
-
-    public static Builder builder(ParallelismConfiguration parallelismConfiguration) {
-        return new Builder(parallelismConfiguration);
+    public static Builder builder(WorkerLimits workerLimits) {
+        return new Builder(workerLimits);
     }
 
     public static class Builder {
-        private final ParallelismConfiguration parallelismConfiguration;
-        private BuildOperationTimeSupplier timeSupplier;
+        private final WorkerLimits workerLimits;
+        private Clock clock;
+        private BuildOperationRunner runner;
         private WorkerLeaseService workerLeaseService;
         private BuildOperationQueueFactory queueFactory;
         private DefaultBuildOperationRunner.BuildOperationExecutionListenerFactory executionListenerFactory;
         private ExecutorFactory executorFactory;
 
-        private Builder(ParallelismConfiguration parallelismConfiguration) {
-            this.parallelismConfiguration = parallelismConfiguration;
+        private Builder(WorkerLimits workerLimits) {
+            this.workerLimits = workerLimits;
         }
 
-        public Builder withTimeSupplier(BuildOperationTimeSupplier timeSupplier) {
-            this.timeSupplier = timeSupplier;
+        public Builder withTimeSupplier(Clock timeSupplier) {
+            this.clock = timeSupplier;
+            return this;
+        }
+
+        public Builder withRunner(BuildOperationRunner runner) {
+            this.runner = runner;
             return this;
         }
 
@@ -74,12 +79,6 @@ public class BuildOperationExecutorSupport {
         }
 
         public BuildOperationExecutor build() {
-            BuildOperationTimeSupplier timeSupplier = this.timeSupplier != null
-                ? this.timeSupplier
-                : System::currentTimeMillis;
-            DefaultBuildOperationRunner.BuildOperationExecutionListenerFactory executionListenerFactory = this.executionListenerFactory != null
-                ? this.executionListenerFactory
-                : () -> DefaultBuildOperationRunner.BuildOperationExecutionListener.NO_OP;
             WorkerLeaseService workerLeaseService = this.workerLeaseService != null
                 ? this.workerLeaseService
                 : new TestWorkerLeaseService();
@@ -90,19 +89,32 @@ public class BuildOperationExecutorSupport {
                 ? this.executorFactory
                 : new DefaultExecutorFactory();
 
-            BuildOperationRunner buildOperationRunner = new DefaultBuildOperationRunner(
+            return new DefaultBuildOperationExecutor(
+                buildRunner(),
+                CurrentBuildOperationRef.instance(),
+                queueFactory,
+                executorFactory,
+                workerLimits);
+        }
+
+        private BuildOperationRunner buildRunner() {
+            if (runner != null) {
+                return runner;
+            }
+
+            Clock timeSupplier = this.clock != null
+                ? this.clock
+                : Time.clock();
+            DefaultBuildOperationRunner.BuildOperationExecutionListenerFactory executionListenerFactory = this.executionListenerFactory != null
+                ? this.executionListenerFactory
+                : () -> DefaultBuildOperationRunner.BuildOperationExecutionListener.NO_OP;
+
+            return new DefaultBuildOperationRunner(
                 CurrentBuildOperationRef.instance(),
                 timeSupplier,
                 new DefaultBuildOperationIdFactory(),
                 executionListenerFactory
             );
-
-            return new DefaultBuildOperationExecutor(
-                buildOperationRunner,
-                CurrentBuildOperationRef.instance(),
-                queueFactory,
-                executorFactory,
-                parallelismConfiguration);
         }
     }
 }

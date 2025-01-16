@@ -22,6 +22,11 @@ import org.gradle.integtests.fixtures.UnsupportedWithConfigurationCache
 @UnsupportedWithConfigurationCache(because = "software model")
 class ModelReportIntegrationTest extends AbstractIntegrationSpec {
 
+    @Override
+    protected void setupExecuter() {
+        super.setupExecuter()
+    }
+
     def "displays basic structure of an empty project"() {
         given:
         buildFile
@@ -50,6 +55,7 @@ class ModelReportIntegrationTest extends AbstractIntegrationSpec {
                     resovableVariants()
                     tasks()
                     wrapper()
+                    updateDaemonJvm()
                 }
             }
         })
@@ -252,6 +258,7 @@ model {
 """
         buildFile
         when:
+        executer.withArgument("--no-problems-report")
         run "model"
 
         then:
@@ -384,6 +391,12 @@ model {
           | Type:   \torg.gradle.api.tasks.diagnostics.TaskReportTask
           | Value:  \ttask ':tasks\'
           | Creator: \tProject.<init>.tasks.tasks()
+          | Rules:
+             ⤷ copyToTaskContainer
+    + updateDaemonJvm
+          | Type:   \torg.gradle.buildconfiguration.tasks.UpdateDaemonJvm
+          | Value:  \ttask ':updateDaemonJvm\'
+          | Creator: \tProject.<init>.tasks.updateDaemonJvm()
           | Rules:
              ⤷ copyToTaskContainer
     + wrapper
