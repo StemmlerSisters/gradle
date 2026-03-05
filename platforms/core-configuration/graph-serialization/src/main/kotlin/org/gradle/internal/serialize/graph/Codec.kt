@@ -289,22 +289,33 @@ inline fun <T : MutableIsolateContext, R> T.withPropertyTrace(trace: PropertyTra
 }
 
 
-inline fun <T : Any> WriteContext.encodePreservingIdentityOf(reference: T, encode: WriteContext.(T) -> Unit) {
+inline fun <T : Any> WriteContext.encodePreservingIdentityOf(reference: T, encode: WriteContext.(T) -> Unit) =
     encodePreservingIdentityOf(isolate.identities, reference, encode)
-}
 
 
 inline fun <T : Any> WriteContext.encodePreservingSharedIdentityOf(reference: T, encode: WriteContext.(T) -> Unit) =
     encodePreservingIdentityOf(sharedIdentities, reference, encode)
 
 
-inline fun <T : Any> WriteContext.encodePreservingIdentityOf(identities: WriteIdentities, reference: T, encode: WriteContext.(T) -> Unit) {
+inline fun <T : Any> WriteContext.encodePreservingIdentityOf(identities: WriteIdentities, reference: T, encode: WriteContext.(T) -> Unit) =
+    encodePreservingIdentityOf(identities, circularReferences, isIntegrityCheckEnabled, reference, encode)
+
+
+inline fun <T : Any, C: Encoder> C.encodePreservingIdentityOf(
+    identities: WriteIdentities,
+    circularReferences: CircularReferences,
+    integrityCheckEnabled: Boolean = false,
+    reference: T,
+    encode: C.(T) -> Unit
+) {
     val id = identities.getId(reference)
     if (id >= 0) {
         writeSmallInt(id)
+        if (integrityCheckEnabled) writeBoolean(true)
     } else {
         val newId = identities.putInstance(reference)
         writeSmallInt(newId)
+        if (integrityCheckEnabled) writeBoolean(false)
         circularReferences.enter(reference)
         try {
             encode(reference)
@@ -316,20 +327,46 @@ inline fun <T : Any> WriteContext.encodePreservingIdentityOf(identities: WriteId
 
 
 inline fun <T> ReadContext.decodePreservingIdentity(decode: ReadContext.(Int) -> T): T =
-    decodePreservingIdentity(isolate.identities, decode)
+    decodePreservingIdentity(isolate.identities, isIntegrityCheckEnabled, decode)
 
 
 inline fun <T : Any> ReadContext.decodePreservingSharedIdentity(decode: ReadContext.(Int) -> T): T =
-    decodePreservingIdentity(sharedIdentities) { id ->
+    decodePreservingIdentity(sharedIdentities, isIntegrityCheckEnabled) { id ->
         decode(id).also {
             sharedIdentities.putInstance(id, it)
         }
     }
 
 
-inline fun <T, C : Decoder> C.decodePreservingIdentity(identities: ReadIdentities, decode: C.(Int) -> T): T {
+inline fun <T, C : Decoder> C.decodePreservingIdentity(
+    identities: ReadIdentities,
+    integrityCheckEnabled: Boolean = false,
+    decode: C.(Int) -> T
+): T {
     val id = readSmallInt()
     val previousValue = identities.getInstance(id)
+    if (integrityCheckEnabled) {
+        val reusedExpected = readBoolean()
+        if (reusedExpected) {
+            // Let's check if the current state of the identities is valid according to what is written in the stream.
+            // Our codecs should handle everything users throw at them properly. Invalid identity state is our fault.
+            // Let's point the user in a right direction.
+            check(previousValue != null) {
+                // We have a circular reference and must backfill it, but the reference is not available.
+                "Unresolvable circular reference detected when decoding id=$id. An existing instance is expected but none available. " +
+                    "This is likely a bug in a Gradle codec. " +
+                    "Please report the issue to Gradle's bug tracker."
+            }
+        } else {
+            check(previousValue == null) {
+                // We have a fresh id that is followed by a definition, but the id is already used for something.
+                "Unexpected reuse of id=$id. The id is already bound to `${previousValue!!.javaClass.name}`. " +
+                    "This is likely a bug in a Gradle codec. " +
+                    "Please report the issue to Gradle's bug tracker."
+            }
+        }
+    }
+
     return when {
         previousValue != null -> previousValue.uncheckedCast()
         else -> {
