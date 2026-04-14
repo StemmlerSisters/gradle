@@ -284,6 +284,16 @@ include::native_software.adoc[leveloffset=+2]
 include::building_swift_projects.adoc[leveloffset=+2]
 include::swift_testing.adoc[leveloffset=+2]
 
+[[part:gradle_on_ci]]
+== GRADLE ON CI
+
+include::gradle_on_ci.adoc[leveloffset=+2]
+include::github-actions.adoc[leveloffset=+2]
+include::gitlab-ci.adoc[leveloffset=+2]
+include::jenkins.adoc[leveloffset=+2]
+include::teamcity.adoc[leveloffset=+2]
+include::travis-ci.adoc[leveloffset=+2]
+
 == STRUCTURING BUILDS
 
 include::organizing_gradle_projects.adoc[leveloffset=+2]
