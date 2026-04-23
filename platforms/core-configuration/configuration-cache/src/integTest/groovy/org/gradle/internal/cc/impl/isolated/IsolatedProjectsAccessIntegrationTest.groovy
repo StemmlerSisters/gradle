@@ -16,11 +16,12 @@
 
 package org.gradle.internal.cc.impl.isolated
 
-import org.gradle.util.internal.ToBeImplemented
+
+import spock.lang.Issue
 
 class IsolatedProjectsAccessIntegrationTest extends AbstractIsolatedProjectsIntegrationTest {
 
-    @ToBeImplemented("https://github.com/gradle/gradle/issues/37643")
+    @Issue("https://github.com/gradle/gradle/issues/37643")
     def "reports problem when accessing mutable state on a project in hierarchy"() {
         settingsFile """
             include(":sub:par")
@@ -36,8 +37,6 @@ class IsolatedProjectsAccessIntegrationTest extends AbstractIsolatedProjectsInte
         then:
         fixture.assertStateStoredAndDiscarded {
             projectsConfigured(":", ":sub", ":sub:par")
-            // TODO:isolated this reported IP problem should not be reported
-            problem("Build file 'sub/par/build.gradle': line 2: Project ':sub' cannot access 'Project.findProperty' functionality on another project ':'", 1)
             problem("Build file 'sub/par/build.gradle': line 2: Project ':sub:par' cannot access 'Project.findProperty' functionality on another project ':'", 1)
         }
     }
