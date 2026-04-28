@@ -37,9 +37,11 @@ import org.gradle.api.internal.file.FileOperations
 import org.gradle.api.internal.file.FileResolver
 import org.gradle.api.internal.initialization.ClassLoaderScope
 import org.gradle.api.internal.project.CrossProjectModelAccess
+import org.gradle.api.internal.project.DefaultCrossProjectModelAccess
 import org.gradle.api.internal.project.MutableStateAccessAwareProject
 import org.gradle.api.internal.project.ProjectIdentifier
 import org.gradle.api.internal.project.ProjectInternal
+import org.gradle.api.internal.project.ProjectRegistry
 import org.gradle.api.internal.tasks.TaskDependencyFactory
 import org.gradle.api.internal.tasks.TaskDependencyUsageTracker
 import org.gradle.api.logging.Logger
@@ -58,8 +60,8 @@ import org.gradle.internal.cc.impl.CrossProjectModelAccessPattern.ALLPROJECTS
 import org.gradle.internal.cc.impl.CrossProjectModelAccessPattern.CHILD
 import org.gradle.internal.cc.impl.CrossProjectModelAccessPattern.DIRECT
 import org.gradle.internal.cc.impl.CrossProjectModelAccessPattern.SUBPROJECT
+import org.gradle.internal.configuration.problems.IsolatedProjectsProblemsListener
 import org.gradle.internal.configuration.problems.ProblemFactory
-import org.gradle.internal.configuration.problems.ProblemsListener
 import org.gradle.internal.configuration.problems.StructuredMessage
 import org.gradle.internal.extensions.stdlib.uncheckedCast
 import org.gradle.internal.logging.StandardOutputCapture
@@ -70,6 +72,7 @@ import org.gradle.internal.model.ModelContainer
 import org.gradle.internal.model.RuleBasedPluginListener
 import org.gradle.internal.reflect.Instantiator
 import org.gradle.internal.service.ServiceRegistry
+import org.gradle.invocation.GradleLifecycleActionExecutor
 import org.gradle.model.internal.registry.ModelRegistry
 import org.gradle.util.Path
 import java.io.File
@@ -79,14 +82,18 @@ import java.util.concurrent.Callable
 
 internal
 class ProblemReportingCrossProjectModelAccess(
-    private val delegate: CrossProjectModelAccess,
-    private val problems: ProblemsListener,
+    private val ipProblems: IsolatedProjectsProblemsListener,
     private val coupledProjectsListener: CoupledProjectsListener,
     private val problemFactory: ProblemFactory,
     private val dynamicCallProblemReporting: DynamicCallProblemReporting,
     private val buildModelParameters: BuildModelParameters,
-    private val instantiator: Instantiator
+    private val instantiator: Instantiator,
+    projectRegistry: ProjectRegistry,
+    gradleLifecycleActionExecutor: GradleLifecycleActionExecutor
 ) : CrossProjectModelAccess {
+
+    private val delegate = DefaultCrossProjectModelAccess(projectRegistry, instantiator, gradleLifecycleActionExecutor)
+
     override fun findProject(referrer: ProjectInternal, path: Path): ProjectInternal? {
         return delegate.findProject(referrer, path)?.let {
             it.wrap(referrer, CrossProjectModelAccessInstance(DIRECT, it), instantiator)
@@ -120,17 +127,17 @@ class ProblemReportingCrossProjectModelAccess(
     }
 
     override fun taskDependencyUsageTracker(referrerProject: ProjectInternal): TaskDependencyUsageTracker {
-        return ReportingTaskDependencyUsageTracker(referrerProject, coupledProjectsListener, problems, problemFactory)
+        return ReportingTaskDependencyUsageTracker(referrerProject, coupledProjectsListener, ipProblems, problemFactory)
     }
 
     override fun taskGraphForProject(referrerProject: ProjectInternal, taskGraph: TaskExecutionGraphInternal): TaskExecutionGraphInternal {
-        return CrossProjectConfigurationReportingTaskExecutionGraph(taskGraph, referrerProject, problems, this, coupledProjectsListener, problemFactory)
+        return CrossProjectConfigurationReportingTaskExecutionGraph(taskGraph, referrerProject, ipProblems, this, coupledProjectsListener, problemFactory)
     }
 
     override fun parentProjectDynamicInheritedScope(referrerProject: ProjectInternal): HierarchicalDynamicObject? {
         val parent = referrerProject.parent ?: return null
         return CrossProjectModelAccessTrackingParentDynamicObject(
-            parent, parent.inheritedScope, referrerProject, problems, coupledProjectsListener, problemFactory, dynamicCallProblemReporting
+            parent, parent.inheritedScope, referrerProject, ipProblems, coupledProjectsListener, problemFactory, dynamicCallProblemReporting
         )
     }
 
@@ -145,7 +152,7 @@ class ProblemReportingCrossProjectModelAccess(
             this,
             referrer,
             access,
-            problems,
+            ipProblems,
             coupledProjectsListener,
             problemFactory,
             buildModelParameters,
@@ -158,7 +165,7 @@ class ProblemReportingCrossProjectModelAccess(
         delegate: ProjectInternal,
         referrer: ProjectInternal,
         private val access: CrossProjectModelAccessInstance,
-        private val problems: ProblemsListener,
+        private val ipProblems: IsolatedProjectsProblemsListener,
         private val coupledProjectsListener: CoupledProjectsListener,
         private val problemFactory: ProblemFactory,
         private val buildModelParameters: BuildModelParameters,
@@ -566,7 +573,7 @@ class ProblemReportingCrossProjectModelAccess(
                 .exception()
                 .build()
 
-            problems.onProblem(problem)
+            ipProblems.onIsolatedProjectsProblem(problem)
         }
 
         private

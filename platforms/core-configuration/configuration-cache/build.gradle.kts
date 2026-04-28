@@ -50,6 +50,7 @@ dependencies {
     implementation(projects.buildDiscovery)
     implementation(projects.buildDiscoveryImpl)
     implementation(projects.buildProcessServices)
+    implementation(projects.classpath)
     implementation(projects.classloaders)
     implementation(projects.coreFlowServicesApi)
     implementation(projects.coreKotlinExtensions)
@@ -118,6 +119,7 @@ dependencies {
     integTestImplementation(testLibs.playwright)
 
     integTestImplementation(testFixtures(projects.toolingApi))
+    integTestImplementation(testFixtures(projects.kotlinDslToolingBuilders))
     integTestImplementation(testFixtures(projects.dependencyManagement))
     integTestImplementation(testFixtures(projects.jacoco))
     integTestImplementation(testFixtures(projects.modelReflect))

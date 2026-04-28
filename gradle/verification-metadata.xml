@@ -188,6 +188,7 @@
          <trusted-key id="4008F9DFF7DBC968F35F9E712642156411CCE8B3" group="com.vladsch.flexmark"/>
          <trusted-key id="416952B945B78A34C6C7678562EBFC78FE4156D1" group="org.jruby"/>
          <trusted-key id="41A1A08C62FCA78B79D3081164A16FAAEC16A4BE" group="org.apache.commons" name="commons-math3"/>
+         <trusted-key id="41B962CF9AA2A26FF1F234D2A6144824624A3CBA" group="io.leangen.geantyref" name="geantyref"/>
          <trusted-key id="41CD49B4EF5876F9E9F691DABAC30622339994C4">
             <trusting group="com.google.truth" name="truth"/>
             <trusting group="org.jspecify" name="jspecify"/>
@@ -757,9 +758,9 @@
             <sha256 value="be5805392060c71474bf6c9a67a099471274d30b83eef84bfc4e0889a4f1dcc0" origin="Verified" reason="Artifact is not signed"/>
          </artifact>
       </component>
-      <component group="net.ltgt.gradle" name="gradle-errorprone-plugin" version="4.1.0">
-         <artifact name="gradle-errorprone-plugin-4.1.0.jar">
-            <sha256 value="f1eab035c996e20b081bf3c18bd0e328bb553d465e4be2354d0af4dde070465d" origin="Verified" reason="Artifact is not signed"/>
+      <component group="net.ltgt.gradle" name="gradle-errorprone-plugin" version="5.1.0">
+         <artifact name="gradle-errorprone-plugin-5.1.0.jar">
+            <sha256 value="98524cc51670cd51deb0074535bf5ea373b7298ea08669def952bc3d2cbb7b2a" origin="Verified" reason="Artifact is not signed"/>
          </artifact>
       </component>
       <component group="net.ltgt.gradle" name="gradle-nullaway-plugin" version="2.2.0">

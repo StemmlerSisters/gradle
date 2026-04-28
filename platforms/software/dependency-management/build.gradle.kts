@@ -15,6 +15,7 @@ dependencies {
     api(projects.buildOperations)
     api(projects.buildOption)
     api(projects.buildProcessServices)
+    api(projects.classpath)
     api(projects.classloaders)
     api(projects.collections)
     api(projects.concurrent)
@@ -49,6 +50,7 @@ dependencies {
     api(projects.versionedCache)
 
     api(libs.bouncycastlePgp)
+    api(libs.fastutil)
     api(libs.groovy)
     api(libs.guava)
     api(libs.inject)
@@ -72,7 +74,6 @@ dependencies {
     implementation(libs.asmCommons)
     implementation(libs.commonsIo)
     implementation(libs.commonsLang)
-    implementation(libs.fastutil)
     implementation(libs.gson)
     implementation(libs.httpcore)
 
