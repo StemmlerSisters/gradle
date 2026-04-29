@@ -82,6 +82,9 @@ import org.gradle.configuration.ScriptPluginFactory;
 import org.gradle.configuration.internal.ListenerBuildOperationDecorator;
 import org.gradle.configuration.project.ProjectConfigurationActionContainer;
 import org.gradle.configuration.project.ProjectEvaluator;
+import org.gradle.features.internal.binding.ProjectFeatureApplicator;
+import org.gradle.features.internal.binding.ProjectFeatureDeclarations;
+import org.gradle.features.internal.binding.ProjectFeatureSupportInternal;
 import org.gradle.groovy.scripts.ScriptSource;
 import org.gradle.internal.Actions;
 import org.gradle.internal.Cast;
@@ -125,9 +128,6 @@ import org.gradle.model.internal.registry.ModelRegistry;
 import org.gradle.model.internal.type.ModelType;
 import org.gradle.normalization.InputNormalizationHandler;
 import org.gradle.normalization.internal.InputNormalizationHandlerInternal;
-import org.gradle.features.internal.binding.ProjectFeatureApplicator;
-import org.gradle.features.internal.binding.ProjectFeatureDeclarations;
-import org.gradle.features.internal.binding.ProjectFeatureSupportInternal;
 import org.gradle.util.Configurable;
 import org.gradle.util.Path;
 import org.gradle.util.internal.ClosureBackedAction;
@@ -420,7 +420,7 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
 
     @Override
     public File getRootDir() {
-        return rootProject.getProjectDir();
+        return owner.getOwner().getRootProject().getProjectDir();
     }
 
     @Override
@@ -490,8 +490,9 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
             return "";
         }
 
+        String rootProjectName = owner.getOwner().getRootProject().getName();
         return Stream.concat(
-            Stream.of(rootProject.getName()),
+            Stream.of(rootProjectName),
             parent.getProjectIdentity().getProjectPath().segments().stream()
         ).collect(Collectors.joining("."));
     }

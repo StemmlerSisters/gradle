@@ -284,6 +284,9 @@ class DefaultProjectTest extends Specification {
         projectState.owner >> buildState
         projectState.fromMutableState(_) >> { Function f -> f.apply(project) }
         project = defaultProject('root', projectState, null, rootDir, rootProjectClassLoaderScope)
+        projectState.mutableModel >> project
+        projectState.projectDir >> rootDir
+        buildState.getRootProject() >> projectState
         def child1ClassLoaderScope = rootProjectClassLoaderScope.createChild("project-child1", null)
         child1State = Mock(ProjectState)
         child1State.owner >> buildState
