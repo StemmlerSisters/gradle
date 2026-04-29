@@ -28,7 +28,7 @@ class IsolatedProjectsAccessIntegrationTest extends AbstractIsolatedProjectsInte
         """
 
         buildFile "sub/par/build.gradle", """
-            rootProject.findProperty("prop")
+            ${parentExpr}.findProperty("prop")
         """
 
         when:
@@ -37,7 +37,13 @@ class IsolatedProjectsAccessIntegrationTest extends AbstractIsolatedProjectsInte
         then:
         fixture.assertStateStoredAndDiscarded {
             projectsConfigured(":", ":sub", ":sub:par")
-            problem("Build file 'sub/par/build.gradle': line 2: Project ':sub:par' cannot access 'Project.findProperty' functionality on another project ':'", 1)
+            problem("Build file 'sub/par/build.gradle': line 2: Project ':sub:par' cannot access 'Project.findProperty' functionality on another project '$parentPath'", 1)
         }
+
+        where:
+        parentExpr      | parentPath
+        "rootProject"   | ":"
+        "parent"        | ":sub"
+        "parent.parent" | ":"
     }
 }

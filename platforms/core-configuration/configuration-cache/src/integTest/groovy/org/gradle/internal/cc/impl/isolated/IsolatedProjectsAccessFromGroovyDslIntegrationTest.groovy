@@ -633,10 +633,9 @@ class IsolatedProjectsAccessFromGroovyDslIntegrationTest extends AbstractIsolate
         then:
         outputContains("My property: hello")
 
-        // an additional subproject demonstrates that the problems are duplicated as the property lookup traverses up the project hierarchy
+        // an additional subproject demonstrates that the problems are not duplicated as the property lookup traverses up the project hierarchy
         fixture.assertStateStoredAndDiscarded {
             projectsConfigured(":", ":a", ":a:aa")
-            problem("Script 'a/aa/myscript.gradle': line 4: Project ':a' cannot dynamically look up a property in the parent project ':'")
             problem("Script 'a/aa/myscript.gradle': line 4: Project ':a:aa' cannot dynamically look up a property in the parent project ':a'")
         }
     }

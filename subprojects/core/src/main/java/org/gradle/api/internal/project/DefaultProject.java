@@ -101,6 +101,7 @@ import org.gradle.internal.instantiation.generator.AsmBackedClassGenerator;
 import org.gradle.internal.logging.LoggingManagerInternal;
 import org.gradle.internal.logging.StandardOutputCapture;
 import org.gradle.internal.metaobject.BeanDynamicObject;
+import org.gradle.internal.metaobject.DynamicInvokeResult;
 import org.gradle.internal.metaobject.DynamicObject;
 import org.gradle.internal.metaobject.HierarchicalDynamicObject;
 import org.gradle.internal.model.ModelContainer;
@@ -220,8 +221,6 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
 
     private final ExtensibleDynamicObject extensibleDynamicObject;
 
-    private final DynamicLookupRoutine dynamicLookupRoutine;
-
     @Nullable
     private String description;
 
@@ -271,8 +270,6 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
         evaluationListener.add(gradle.getProjectEvaluationBroadcaster());
 
         ruleBasedPluginListenerBroadcast.add((RuleBasedPluginListener) project -> populateModelRegistry(services.get(ModelRegistry.class)));
-
-        dynamicLookupRoutine = services.get(DynamicLookupRoutine.class);
     }
 
     @SuppressWarnings("unused")
@@ -1142,10 +1139,9 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
     }
 
     /**
-     * This is an implementation of the {@link groovy.lang.GroovyObject}'s corresponding method.
-     * The interface itself is mixed-in at runtime, but we want to keep this implementation as it
-     * properly handles the dynamicLookupRoutine.
-     *
+     * @implNote This is an implementation of the {@link groovy.lang.GroovyObject}'s corresponding method.
+     * The interface itself is mixed-in at runtime, but we want to keep this implementation
+     * to dispatch through the extensible dynamic object.
      * @see AsmBackedClassGenerator.ClassBuilderImpl#addDynamicMethods
      */
     @SuppressWarnings("JavadocReference")
@@ -1155,10 +1151,9 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
     }
 
     /**
-     * This is an implementation of the {@link groovy.lang.GroovyObject}'s corresponding method.
-     * The interface itself is mixed-in at runtime, but we want to keep this implementation as it
-     * properly handles the dynamicLookupRoutine.
-     *
+     * @implNote This is an implementation of the {@link groovy.lang.GroovyObject}'s corresponding method.
+     * The interface itself is mixed-in at runtime, but we want to keep this implementation
+     * to dispatch through the extensible dynamic object.
      * @see AsmBackedClassGenerator.ClassBuilderImpl#addDynamicMethods
      */
     @SuppressWarnings("JavadocReference")
@@ -1166,32 +1161,33 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
     public Object invokeMethod(String name, Object args) {
         if (args instanceof Object[]) {
             // Spread the 'args' array as varargs:
-            return dynamicLookupRoutine.invokeMethod(extensibleDynamicObject, name, (Object[]) args);
+            return extensibleDynamicObject.invokeMethod(name, (Object[]) args);
         } else {
-            return dynamicLookupRoutine.invokeMethod(extensibleDynamicObject, name, args);
+            return extensibleDynamicObject.invokeMethod(name, args);
         }
     }
 
     @Override
     @Nullable
     public Object property(String propertyName) throws MissingPropertyException {
-        return dynamicLookupRoutine.property(extensibleDynamicObject, propertyName);
+        return extensibleDynamicObject.getProperty(propertyName);
     }
 
     @Override
     @Nullable
     public Object findProperty(String propertyName) {
-        return dynamicLookupRoutine.findProperty(extensibleDynamicObject, propertyName);
+        DynamicInvokeResult result = extensibleDynamicObject.tryGetProperty(propertyName);
+        return result.isFound() ? result.getValue() : null;
     }
 
     @Override
     public void setProperty(String name, @Nullable Object value) {
-        dynamicLookupRoutine.setProperty(extensibleDynamicObject, name, value);
+        extensibleDynamicObject.setProperty(name, value);
     }
 
     @Override
     public boolean hasProperty(String propertyName) {
-        return dynamicLookupRoutine.hasProperty(extensibleDynamicObject, propertyName);
+        return extensibleDynamicObject.hasProperty(propertyName);
     }
 
     @SuppressWarnings("deprecation")
@@ -1201,7 +1197,7 @@ public abstract class DefaultProject extends AbstractPluginAware implements Proj
             .willBecomeAnErrorInGradle10()
             .withUpgradeGuideSection(9, "deprecated_get_properties")
             .nagUser();
-        return dynamicLookupRoutine.getProperties(extensibleDynamicObject);
+        return extensibleDynamicObject.getProperties();
     }
 
     @Override
