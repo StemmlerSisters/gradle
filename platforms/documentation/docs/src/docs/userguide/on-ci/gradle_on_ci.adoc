@@ -28,4 +28,6 @@ The following recipes walk through configuring Gradle for specific CI systems:
 * <<gitlab-ci.adoc#gitlab_ci,GitLab CI>>
 * <<jenkins.adoc#jenkins,Jenkins>>
 * <<teamcity.adoc#teamcity,TeamCity>>
+* <<circleci.adoc#circleci,CircleCI>>
 * <<travis-ci.adoc#travis_ci,Travis CI>>
+* <<docker.adoc#docker,Docker Images>>
