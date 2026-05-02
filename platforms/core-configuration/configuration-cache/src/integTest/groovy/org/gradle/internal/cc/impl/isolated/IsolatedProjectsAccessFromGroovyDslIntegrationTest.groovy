@@ -20,6 +20,11 @@ import org.gradle.api.provider.Property
 import org.gradle.util.internal.ToBeImplemented
 import spock.lang.Issue
 
+/**
+ * Cross-project access tests specific to Groovy DSL.
+ * <p>
+ * For DSL-agnostic tests prefer {@link IsolatedProjectsAccessIntegrationTest}.
+ */
 class IsolatedProjectsAccessFromGroovyDslIntegrationTest extends AbstractIsolatedProjectsIntegrationTest {
     def "reports problem when build script uses #block block to apply plugins to another project"() {
         createDirs("a", "b")
