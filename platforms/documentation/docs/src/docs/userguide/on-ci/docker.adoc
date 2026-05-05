@@ -30,6 +30,8 @@ See the link:https://blog.gradle.org/docker-image-ownership[announcement blog po
 The `gradle` image bundles a pre-installed Gradle distribution alongside a JDK.
 This is convenient for quick experiments and for CI systems that do not check out your project's source tree (and therefore cannot use the Gradle Wrapper).
 
+WARNING: You should not use it for production builds.
+
 For projects that include the link:https://docs.gradle.org/current/userguide/gradle_wrapper.html[Gradle Wrapper] (the recommended practice), a plain JDK image such as `eclipse-temurin:21` is sufficient — the Wrapper downloads the correct Gradle distribution automatically.
 Using a JDK-only image keeps the container layer smaller and avoids a potential version mismatch between the image's pre-installed Gradle and the version declared in `gradle/wrapper/gradle-wrapper.properties`.
 
