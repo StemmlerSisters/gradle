@@ -315,11 +315,14 @@ class DefaultProjectSpec extends Specification {
         }
 
         def container = Mock(ProjectState)
+        _ * container.name >> name
         _ * container.projectPath >> identity.projectPath
         _ * container.identityPath >> identity.buildTreePath
         _ * container.owner >> build.owner
         _ * container.displayName >> Describables.of(name)
         _ * container.identity >> identity
+        _ * container.isolated >> { new DefaultIsolatedProject(container) }
+        _ * container.rootProject >> { parent == null }
 
         def descriptor = Mock(ImmutableProjectDescriptor) {
             getIdentity() >> identity
@@ -333,6 +336,8 @@ class DefaultProjectSpec extends Specification {
 
         def instantiator = TestUtil.instantiatorFactory().decorateLenient(serviceRegistry)
         def factory = new ProjectFactory(instantiator, new DefaultTextFileResourceLoader(null), scriptResolution)
-        return factory.createProject(build, descriptor, container, parent, serviceRegistryFactory, Stub(ClassLoaderScope), Stub(ClassLoaderScope))
+        def project = factory.createProject(build, descriptor, container, parent, serviceRegistryFactory, Stub(ClassLoaderScope), Stub(ClassLoaderScope))
+        _ * container.mutableModel >> project
+        return project
     }
 }
