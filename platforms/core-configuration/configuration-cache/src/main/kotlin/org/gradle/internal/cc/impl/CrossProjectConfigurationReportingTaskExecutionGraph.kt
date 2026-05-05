@@ -153,7 +153,7 @@ class CrossProjectConfigurationReportingTaskExecutionGraph(
                 text(" cannot access the tasks in the task graph that were created by other projects")
             }.exception { message ->
                 // As the exception message is not used for grouping, we can safely add the exact task name to it:
-                message.capitalized() + if (requestPath != null) "; tried to access '$requestPath'" else '"'
+                message.capitalized() + if (requestPath != null) "; tried to access '$requestPath'" else ""
             }.build()
         }
     }
