@@ -141,7 +141,7 @@ class CrossProjectModelAccessTrackingParentDynamicObject(
         PROPERTY, METHOD
     }
 
-    @Suppress("ThrowingExceptionsWithoutMessageOrCause")
+    @Suppress("ThrowingExceptionsWithoutMessageOrCause") // false-positive on the `.exception()` call
     private
     fun onAccess(memberKind: MemberKind, memberName: String?) {
         coupledProjectsListener.onProjectReference(referrerProject.owner, ownerProject.owner)
