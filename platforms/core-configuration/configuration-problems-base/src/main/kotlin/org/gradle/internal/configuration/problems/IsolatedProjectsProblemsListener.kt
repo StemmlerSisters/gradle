@@ -24,7 +24,7 @@ import org.gradle.internal.service.scopes.ServiceScope
  * Receives and registers Isolated Projects violation problems.
  *
  * NOTE: Use [IsolatedProjectsProblemsReporter] instead of this interface
- * to ensure the mechanism of ignoring problems is honered by all reported problems.
+ * to ensure the mechanism of ignoring problems is honored by all reported problems.
  *
  * This listener unconditionally includes all registered problems in the user report.
  */
