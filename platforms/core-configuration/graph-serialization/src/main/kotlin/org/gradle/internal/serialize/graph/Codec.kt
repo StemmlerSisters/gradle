@@ -296,7 +296,7 @@ inline fun <T : MutableIsolateContext, R> T.withPropertyTrace(trace: PropertyTra
  * invoked; otherwise a fresh id is assigned and [encode] is called to write the value's contents.
  * The matching read side is [ReadContext.decodePreservingIdentity].
  *
- * @see encodePreservingIdentityOf for the underlying form and proper-usage notes.
+ * See the explicit-identities overload of [encodePreservingIdentityOf] for proper-usage notes.
  */
 inline fun <T : Any> WriteContext.encodePreservingIdentityOf(reference: T, encode: WriteContext.(T) -> Unit) =
     encodePreservingIdentityOf(isolate.identities, reference, encode)
@@ -312,17 +312,6 @@ inline fun <T : Any> WriteContext.encodePreservingSharedIdentityOf(reference: T,
 
 
 /**
- * Like [WriteContext.encodePreservingIdentityOf] but uses the provided [WriteIdentities] to keep track of visited identities.
- */
-inline fun <T : Any> WriteContext.encodePreservingIdentityOf(
-    identities: WriteIdentities,
-    reference: T,
-    encode: WriteContext.(T) -> Unit
-) =
-    encodePreservingIdentityOf(identities, circularReferences, isIntegrityCheckEnabled, reference, encode)
-
-
-/**
  * Encodes [reference] preserving its identity in the given [identities] map.
  *
  * On first encounter a new id is assigned, [reference] is registered immediately (so a cycle
@@ -332,28 +321,26 @@ inline fun <T : Any> WriteContext.encodePreservingIdentityOf(
  * **Proper usage:** the matching decoder must call [ReadIdentities.putInstance] *before* reading
  * any sub-graph that could transitively reference the value being decoded. Decoders that read
  * non-trivial state before registering the partial instance break under self-references and
- * produce corrupted streams. See [Decoder.decodePreservingIdentity] for the read-side contract.
+ * produce corrupted streams. See [ReadContext.decodePreservingIdentity] for the read-side contract.
  *
- * When [integrityCheckEnabled] is `true`, an extra boolean is written after the id indicating
- * whether this encounter is a back-reference (`true`) or a fresh write (`false`). The matching
- * decoder verifies the flag and fails fast with a clear message if a back-reference is
- * encountered before the partial instance has been registered.
+ * When the receiving context has [WriteContext.isIntegrityCheckEnabled] set, an extra boolean is
+ * written after the id indicating whether this encounter is a back-reference (`true`) or a fresh
+ * write (`false`). The matching decoder verifies the flag and fails fast with a clear message if
+ * the writer's view of the identity state disagrees with the reader's.
  */
-inline fun <T : Any, C: Encoder> C.encodePreservingIdentityOf(
+inline fun <T : Any> WriteContext.encodePreservingIdentityOf(
     identities: WriteIdentities,
-    circularReferences: CircularReferences,
-    integrityCheckEnabled: Boolean = false,
     reference: T,
-    encode: C.(T) -> Unit
+    encode: WriteContext.(T) -> Unit
 ) {
     val id = identities.getId(reference)
     if (id >= 0) {
         writeSmallInt(id)
-        if (integrityCheckEnabled) writeBoolean(true)
+        if (isIntegrityCheckEnabled) writeBoolean(true)
     } else {
         val newId = identities.putInstance(reference)
         writeSmallInt(newId)
-        if (integrityCheckEnabled) writeBoolean(false)
+        if (isIntegrityCheckEnabled) writeBoolean(false)
         circularReferences.enter(reference)
         try {
             encode(reference)
@@ -368,10 +355,10 @@ inline fun <T : Any, C: Encoder> C.encodePreservingIdentityOf(
  * Decodes a value previously written with [encodePreservingIdentityOf] within the current
  * isolate's identities.
  *
- * See [Decoder.decodePreservingIdentity] for the proper-usage contract.
+ * See the explicit-identities overload of [decodePreservingIdentity] for the proper-usage contract.
  */
 inline fun <T> ReadContext.decodePreservingIdentity(decode: ReadContext.(Int) -> T): T =
-    decodePreservingIdentity(isolate.identities, isIntegrityCheckEnabled, decode)
+    decodePreservingIdentity(isolate.identities, decode)
 
 
 /**
@@ -381,12 +368,11 @@ inline fun <T> ReadContext.decodePreservingIdentity(decode: ReadContext.(Int) ->
  *
  * **Limitation:** registration happens *after* [decode] returns, so this helper cannot handle
  * self-cycles — a sub-read inside [decode] that back-references the value being decoded will
- * trip the circular-reference detection under the integrity check. Use [Decoder.decodePreservingIdentity]
+ * trip the circular-reference detection under the integrity check. Use [decodePreservingIdentity]
  * with manual `putInstance` if the decoded graph may reference itself.
- *
  */
 inline fun <T : Any> ReadContext.decodePreservingSharedIdentity(decode: ReadContext.(Int) -> T): T =
-    decodePreservingIdentity(sharedIdentities, isIntegrityCheckEnabled) { id ->
+    decodePreservingIdentity(sharedIdentities) { id ->
         decode(id).also {
             sharedIdentities.putInstance(id, it)
         }
@@ -415,22 +401,25 @@ inline fun <T : Any> ReadContext.decodePreservingSharedIdentity(decode: ReadCont
  *
  * Reading children before `putInstance` corrupts the stream when a self-reference is encountered.
  *
- * When [integrityCheckEnabled] is `true`, the encoder has written a boolean flag indicating
- * whether the id is a back-reference. If the flag says "back-reference" but the id has not yet
- * been registered, the function fails fast with [IllegalStateException] pointing at the buggy
- * codec — instead of letting a stream-corruption error surface later.
+ * When the receiving context has [ReadContext.isIntegrityCheckEnabled] set, the encoder has
+ * written a boolean flag indicating whether the id is a back-reference. The decoder verifies that
+ * the flag matches the current identity state and fails fast with [IllegalStateException]
+ * pointing at the buggy codec — instead of letting a stream-corruption error surface later.
+ * Note that the writer side must have been running with the integrity check enabled too;
+ * mismatched modes corrupt the stream.
  *
  * @throws IllegalArgumentException if [decode] hasn't called `putInstance`
- *      or if the [integrityCheckEnabled] is true and the expected back-reference cannot be fulfilled
+ * @throws IllegalStateException if integrity checks are enabled and the writer's view of the
+ *      identity state disagrees with the reader's (back-reference to a not-yet-registered id, or
+ *      fresh write to an already-bound id)
  */
-inline fun <T, C : Decoder> C.decodePreservingIdentity(
+inline fun <T> ReadContext.decodePreservingIdentity(
     identities: ReadIdentities,
-    integrityCheckEnabled: Boolean = false,
-    decode: C.(Int) -> T
+    decode: ReadContext.(Int) -> T
 ): T {
     val id = readSmallInt()
     val previousValue = identities.getInstance(id)
-    if (integrityCheckEnabled) {
+    if (isIntegrityCheckEnabled) {
         val reusedExpected = readBoolean()
         if (reusedExpected) {
             // Let's check if the current state of the identities is valid according to what is written in the stream.
