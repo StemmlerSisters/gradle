@@ -20,8 +20,6 @@ import org.gradle.api.internal.project.CrossBuildModelAccess
 import org.gradle.api.internal.project.CrossProjectModelAccess
 import org.gradle.api.internal.project.DefaultCrossBuildModelAccess
 import org.gradle.api.internal.project.DefaultCrossProjectModelAccess
-import org.gradle.api.internal.project.DefaultDynamicLookupRoutine
-import org.gradle.api.internal.project.DynamicLookupRoutine
 import org.gradle.api.internal.provider.ConfigurationTimeBarrier
 import org.gradle.api.internal.tasks.TaskExecutionAccessChecker
 import org.gradle.api.internal.tasks.execution.TaskExecutionAccessListener
@@ -65,7 +63,6 @@ internal object BuildModelControllerServices : ServiceRegistrationProvider {
             add(BuildModelController::class.java, VintageBuildModelController::class.java)
             add(CrossBuildModelAccess::class.java, DefaultCrossBuildModelAccess::class.java)
             add(CrossProjectModelAccess::class.java, DefaultCrossProjectModelAccess::class.java)
-            add(DynamicLookupRoutine::class.java, DefaultDynamicLookupRoutine::class.java)
             // endregion
         } else if (buildModelParameters.isConfigurationCache) {
             // region ALL MODES
@@ -81,11 +78,9 @@ internal object BuildModelControllerServices : ServiceRegistrationProvider {
             if (!buildModelParameters.isIsolatedProjects) {
                 add(CrossBuildModelAccess::class.java, DefaultCrossBuildModelAccess::class.java)
                 add(CrossProjectModelAccess::class.java, DefaultCrossProjectModelAccess::class.java)
-                add(DynamicLookupRoutine::class.java, DefaultDynamicLookupRoutine::class.java)
             } else { // IP
                 add(CrossBuildModelAccess::class.java, ProblemReportingCrossBuildModelAccess::class.java)
                 add(CrossProjectModelAccess::class.java, ProblemReportingCrossProjectModelAccess::class.java)
-                add(DynamicLookupRoutine::class.java, TrackingDynamicLookupRoutine::class.java)
                 add(DynamicCallContextTracker::class.java, DefaultDynamicCallContextTracker::class.java)
             }
             // endregion
@@ -97,17 +92,6 @@ internal object BuildModelControllerServices : ServiceRegistrationProvider {
             addProvider(VintageModelProvider())
         }
     }
-
-    // region IP services which are not instantiated unless IP is enabled
-
-    @Provides
-    fun createDynamicCallProjectIsolationProblemReporting(dynamicCallContextTracker: DynamicCallContextTracker): DynamicCallProblemReporting =
-        DefaultDynamicCallProblemReporting().also { reporting ->
-            dynamicCallContextTracker.onEnter(reporting::enterDynamicCall)
-            dynamicCallContextTracker.onLeave(reporting::leaveDynamicCall)
-        }
-
-    // endregion
 
     private
     class ConfigurationCacheModelProvider : ServiceRegistrationProvider {

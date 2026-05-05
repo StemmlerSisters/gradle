@@ -257,7 +257,6 @@ class DefaultProjectSpec extends Specification {
         serviceRegistry.add(ModelRegistry, Stub(ModelRegistry))
         serviceRegistry.add(CrossProjectModelAccess, Stub(CrossProjectModelAccess))
         serviceRegistry.add(DependencyResolutionManagementInternal, Stub(DependencyResolutionManagementInternal))
-        serviceRegistry.add(DynamicLookupRoutine, new DefaultDynamicLookupRoutine())
         serviceRegistry.add(SoftwareComponentContainer, Mock(SoftwareComponentContainer))
         serviceRegistry.add(CrossProjectConfigurator, Mock(CrossProjectConfigurator) {
             getLazyBehaviorGuard() >> Mock(MutationGuard)
