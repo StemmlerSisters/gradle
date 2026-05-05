@@ -38,7 +38,6 @@ import org.gradle.internal.build.BuildModelController
 import org.gradle.internal.buildtree.BuildModelParameters
 import org.gradle.internal.cc.base.services.ProjectRefResolver
 import org.gradle.internal.cc.impl.fingerprint.ConfigurationCacheFingerprintController
-import org.gradle.internal.cc.impl.initialization.ConfigurationCacheStartParameter
 import org.gradle.internal.cc.impl.serialize.ConfigurationCacheCodecs
 import org.gradle.internal.cc.impl.serialize.DefaultConfigurationCacheCodecs
 import org.gradle.internal.event.ListenerManager
@@ -126,15 +125,12 @@ internal object BuildModelControllerServices : ServiceRegistrationProvider {
         }
     }
 
-    // TODO:configuration-cache simplify after https://github.com/gradle/gradle/issues/37567 is addressed
     @Provides
     fun createTaskExecutionAccessChecker(
         /** In non-CC builds, [BuildTreeConfigurationCache] is not registered; accepting a list here is a way to ignore its absence. */
         configurationCache: List<BuildTreeConfigurationCache>,
         configurationTimeBarrier: ConfigurationTimeBarrier,
         modelParameters: BuildModelParameters,
-        /** In non-CC builds, [ConfigurationCacheStartParameter] is not registered; accepting a list here is a way to ignore its absence. */
-        configurationCacheStartParameter: List<ConfigurationCacheStartParameter>,
         listenerManager: ListenerManager,
         workExecutionTracker: WorkExecutionTracker,
     ): TaskExecutionAccessChecker {
@@ -142,12 +138,6 @@ internal object BuildModelControllerServices : ServiceRegistrationProvider {
         val workGraphLoadingState = workGraphLoadingStateFrom(configurationCache)
         return when {
             !modelParameters.isConfigurationCache -> TaskExecutionAccessCheckers.TaskStateBased(workGraphLoadingState, broadcast, workExecutionTracker)
-            configurationCacheStartParameter.single().taskExecutionAccessPreStable -> TaskExecutionAccessCheckers.TaskStateBased(
-                workGraphLoadingState,
-                broadcast,
-                workExecutionTracker
-            )
-
             else -> TaskExecutionAccessCheckers.ConfigurationTimeBarrierBased(configurationTimeBarrier, workGraphLoadingState, broadcast, workExecutionTracker)
         }
     }
